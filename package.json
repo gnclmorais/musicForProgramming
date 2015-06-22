@@ -1,0 +1,31 @@
+{
+  "name": "musicForProgramming",
+  "version": "1.0.0",
+  "description": "Node.js script to download all musicForProgramming(); sessions.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gnclmorais/musicForProgramming.git"
+  },
+  "keywords": [
+    "music",
+    "download",
+    "programming",
+    "musicforprogramming"
+  ],
+  "author": "Gonçalo Morais",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gnclmorais/musicForProgramming/issues"
+  },
+  "homepage": "https://github.com/gnclmorais/musicForProgramming",
+  "dependencies": {
+    "bluebird": "^2.9.30",
+    "cheerio": "^0.19.0",
+    "request-promise": "^0.4.2"
+  }
+}
