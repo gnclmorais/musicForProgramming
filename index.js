@@ -3,21 +3,26 @@
 var request = require('request-promise')
 var cheerio = require('cheerio')
 var Promise = require('bluebird')
-//var fs = require('fs')
 var fs = Promise.promisifyAll(require('fs'))
+var ProgressBar = require('progress')
 
 var webpage = 'http://musicforprogramming.net'
 
+/**
+ * Main body.
+ */
 request(webpage)
   .then(getTrackPages)
   .then(getTrackLinks)
   .then(downloadTracks)
-  .then(function () {
-    console.log('All done!')
-  })
-  .then(console.log)
+  .then(wrapUp)
   .catch(console.error)
 
+/**
+ * Requests the pages where to get the tracks.
+ * @param  {String} html HTML code of the requested page.
+ * @return {Array}       List of page links.
+ */
 function getTrackPages(html) {
   var $ = cheerio.load(html)
 
@@ -29,6 +34,11 @@ function getTrackPages(html) {
   })
 }
 
+/**
+ * Requests each track page.
+ * @param  {Array} pagesUrls List of page links.
+ * @return {Promise}         Promise returning an array of mp3 links.
+ */
 function getTrackLinks(pagesUrls) {
   return Promise.all(pagesUrls.map(function (index, page) {
     return request(page)
@@ -37,6 +47,11 @@ function getTrackLinks(pagesUrls) {
   })
 }
 
+/**
+ * Extrats the mp3 link from a track page.
+ * @param  {String} html The HTML of a track page.
+ * @return {String}      The track (mp3 file) URL.
+ */
 function extractTrackLink(html) {
   var $ = cheerio.load(html)
   var track = $('.container .content a').first()
@@ -44,57 +59,60 @@ function extractTrackLink(html) {
   return track.attr('href')
 }
 
+/**
+ * Goes through each track and downloads it.
+ * @param  {Array} tracks List of track files.
+ * @return {Promise}      Promise returning the number of tracks downloaded.
+ */
 function downloadTracks(tracks) {
   return Promise.reduce(tracks, function (total, track) {
     return downloadTrack(track).then(function () {
       return total + 1
     })
-  }, 0) // Is this necessary?
+  }, 0)
 }
 
+/**
+ * Downloads & saves a single track.
+ * @param  {String} track The URL of an mp3 track.
+ * @return {Promise}      Promise responsible for downloading & saving a track.
+ */
 function downloadTrack(track) {
   // Try to get a proper name, fallback if fails
   var name = track.match(/\d+-[a-z_]+\.mp3/g)
   name = name ? name[0] : track.split('-')[1]
 
-  // return request(track).then(function (data) {
-  //   return fs.writeFileAsync(name, data);
-  // }).then(function () {
-  //   console.log('Finished downloading ' + name)
-  // })
-
   return new Promise(function (resolve, reject) {
-    request(track)
-      .on('data', function (chunk) {
-        console.log('data')
-        // bar = bar || new ProgressBar('Downloading... [:bar] :percent :etas', {
-        //   complete: '=',
-        //   incomplete: ' ',
-        //   width: 25,
-        //   total: parseInt(req.response.headers['content-length'])
-        // });
+    var msg, bar
 
-        // bar.tick(chunk.length);
+    request(track)
+      .on('response', function (res) {
+        // Create a new progress bar
+        msg = 'Downloading ' + name + '... [:bar] :percent :etas'
+        bar = new ProgressBar(msg, {
+          incomplete: ' ',
+          width: 25,
+          renderThrottle: 500,
+          total: parseInt(res.headers['content-length'], 10)
+        })
       })
-      .pipe(fs.createWriteStream(name)
-        .on('pipe', function (chunk) {
-          console.log('Starting…')
-        })
-        .on('readable', function (chunk) {
-          console.log('Readable…')
-        })
-        // .on('drain', function (a, b, c) {
-        //   console.log('Draining…', a, b, c)
-        // })
-        .on('data', function (chunk) {
-          console.log('Data…')
-        })
-        .on('write', function (chunk) {
-          console.log('Writing')
-        })
-        .on('finish', function () {
-          console.log('Finished downloading ' + name)
-          resolve();
-        }))
+      .on('data', function (chunk) {
+        // Update progress bar
+        bar.tick(chunk.length)
+      })
+      .on('end', resolve)
+      .pipe(fs.createWriteStream(name))
   })
+}
+
+/**
+ * Final message, after all downloads.
+ * @param  {Number} total Total number of downloaded tracks.
+ */
+function wrapUp(total) {
+  total = total || 0
+  var num = total === 1 ? '' : 's'
+  var msg = 'All done! ' + total + ' file' + num + ' downloaded.'
+
+  console.log(msg)
 }

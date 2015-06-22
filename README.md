@@ -2,4 +2,5 @@
 Node.js script to download all [musicForProgramming();](http://musicforprogramming.net/) sessions.
 
 ## Todo
-- [ ] Use pipes, since files are huge.
+- [x] Use pipes, since files are huge.
+- [ ] Check if files already exit.
