@@ -47,9 +47,9 @@ function extractTrackLink(html) {
 function downloadTracks(tracks) {
   return Promise.reduce(tracks, function (total, track) {
     return downloadTrack(track).then(function () {
-      return total += 1;
+      return total + 1
     })
-  }, 0)
+  }, 0) // Is this necessary?
 }
 
 function downloadTrack(track) {
@@ -57,10 +57,44 @@ function downloadTrack(track) {
   var name = track.match(/\d+-[a-z_]+\.mp3/g)
   name = name ? name[0] : track.split('-')[1]
 
-  //console.log(track)
-  return new Promise(function () {
-    return request(track).pipe(fs.createWriteStream(name)).on('end', function () {
-      return 'Finish!'
-    })
+  // return request(track).then(function (data) {
+  //   return fs.writeFileAsync(name, data);
+  // }).then(function () {
+  //   console.log('Finished downloading ' + name)
+  // })
+
+  return new Promise(function (resolve, reject) {
+    request(track)
+      .on('data', function (chunk) {
+        console.log('data')
+        // bar = bar || new ProgressBar('Downloading... [:bar] :percent :etas', {
+        //   complete: '=',
+        //   incomplete: ' ',
+        //   width: 25,
+        //   total: parseInt(req.response.headers['content-length'])
+        // });
+
+        // bar.tick(chunk.length);
+      })
+      .pipe(fs.createWriteStream(name)
+        .on('pipe', function (chunk) {
+          console.log('Starting…')
+        })
+        .on('readable', function (chunk) {
+          console.log('Readable…')
+        })
+        // .on('drain', function (a, b, c) {
+        //   console.log('Draining…', a, b, c)
+        // })
+        .on('data', function (chunk) {
+          console.log('Data…')
+        })
+        .on('write', function (chunk) {
+          console.log('Writing')
+        })
+        .on('finish', function () {
+          console.log('Finished downloading ' + name)
+          resolve();
+        }))
   })
 }
