@@ -11,12 +11,13 @@ var webpage = 'http://musicforprogramming.net'
 /**
  * Main body.
  */
+console.log('Fetching page...')
 request(webpage)
   .then(getTrackPages)
   .then(getTrackLinks)
   .then(downloadTracks)
   .then(wrapUp)
-  .catch(console.error)
+  .catch(handleError)
 
 /**
  * Requests the pages where to get the tracks.
@@ -24,6 +25,8 @@ request(webpage)
  * @return {Array}       List of page links.
  */
 function getTrackPages(html) {
+  console.log('Building track pages links...')
+
   var $ = cheerio.load(html)
 
   // Get only the right links and attach them the full URL
@@ -40,9 +43,13 @@ function getTrackPages(html) {
  * @return {Promise}         Promise returning an array of mp3 links.
  */
 function getTrackLinks(pagesUrls) {
+  console.log('Fetching track pages...')
+
   return Promise.all(pagesUrls.map(function (index, page) {
     return request(page)
   }).get()).then(function (pages) {
+    console.log('Extracting track links...')
+
     return pages.map(extractTrackLink)
   })
 }
@@ -85,23 +92,35 @@ function downloadTrack(track) {
   return new Promise(function (resolve, reject) {
     var msg, bar
 
-    request(track)
-      .on('response', function (res) {
-        // Create a new progress bar
-        msg = 'Downloading ' + name + '... [:bar] :percent :etas'
-        bar = new ProgressBar(msg, {
-          incomplete: ' ',
-          width: 25,
-          renderThrottle: 500,
-          total: parseInt(res.headers['content-length'], 10)
+    var handleFileExists = function (a, b) {
+      console.log(name + ' exists, skipping download...')
+      resolve();
+    }
+
+    var handleFileDoesntExist = function () {
+      request(track)
+        .on('response', function (res) {
+          // Create a new progress bar
+          msg = 'Downloading ' + name + '... [:bar] :percent :etas'
+          bar = new ProgressBar(msg, {
+            incomplete: ' ',
+            width: 25,
+            renderThrottle: 500,
+            total: parseInt(res.headers['content-length'], 10)
+          })
         })
-      })
-      .on('data', function (chunk) {
-        // Update progress bar
-        bar.tick(chunk.length)
-      })
-      .on('end', resolve)
-      .pipe(fs.createWriteStream(name))
+        .on('data', function (chunk) {
+          // Update progress bar
+          bar.tick(chunk.length)
+        })
+        .on('end', resolve)
+        .pipe(fs.createWriteStream(name))
+    }
+
+    // Check if the file already exists
+    fs.statAsync(name)
+      .then(handleFileExists)
+      .catch(handleFileDoesntExist)
   })
 }
 
@@ -115,4 +134,13 @@ function wrapUp(total) {
   var msg = 'All done! ' + total + ' file' + num + ' downloaded.'
 
   console.log(msg)
+}
+
+/**
+ * Simple error handling, no need to get fancy.
+ * @param  {Object} err Error object, with info about what happened.
+ */
+function handleError(err) {
+  console.error('\nSomething happened... Are you connected to the web?')
+  console.error('More details:\n', err)
 }
