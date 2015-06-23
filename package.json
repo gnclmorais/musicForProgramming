@@ -1,6 +1,6 @@
 {
   "name": "musicForProgramming",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Node.js script to download all musicForProgramming(); sessions.",
   "main": "index.js",
   "scripts": {
