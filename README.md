@@ -34,3 +34,4 @@ Downloading 3-datassette.mp3... [===                      ] 14% 225.7s
 - [x] Use pipes, since files are huge.
 - [x] Check if files already exit.
 - [x] Better error handling.
+- [ ] Use [RSS feed](http://musicforprogramming.net/rss.php) instead of just crawling the website
